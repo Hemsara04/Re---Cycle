@@ -118,15 +118,24 @@ This is a second pinned scroll section in the same studio look. It tells the thr
 
 With reduced motion, no WebGL, or a load failure, the section falls back to the plain three-card layout. It adds no downloads of its own: everything is procedural, and the HDRI is shared with the waste scene.
 
-## Deploy (Cloudflare Pages)
+## Deploy (Cloudflare Workers, static assets)
 
-`next.config.ts` uses `output: "export"`, so `npm run build` writes a fully static site to `out/`.
+`next.config.ts` uses `output: "export"`, so `npm run build` writes a fully static site to `out/`. `wrangler.jsonc` tells Cloudflare to serve that folder: clean URLs (`/dashboard` → `dashboard.html`), a 404 page for unknown URLs, and the cache rules in `public/_headers`.
 
-- Root directory: `frontend`
-- Build command: `npm run build`
-- Build output directory: `out`
+In Cloudflare, go to **Workers & Pages → your project → Settings → Build**:
 
-`public/_headers` sets long-lived caching for the models, the HDRI and Next's static chunks.
+| Setting | Value |
+|---|---|
+| Root directory | `frontend` |
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy` |
+| Build variables | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (they're inlined at build time) |
+
+The `name` in `wrangler.jsonc` must match the Worker's name in the dashboard.
+
+After the first deploy, add the site URL (e.g. `https://<name>.<account>.workers.dev/**`) to Supabase → Authentication → URL Configuration → Redirect URLs, and set it as the Site URL once it's your main domain.
+
+Check locally before pushing: `npm run build && npx wrangler deploy --dry-run`, or `npx wrangler dev` to serve the build the way Cloudflare does.
 
 ## Notes
 
