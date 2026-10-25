@@ -1,0 +1,16 @@
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Local Claude Code / preview config
+.claude/
+
+# Env files live in frontend/ and are ignored there too — never commit keys
+.env
+.env.*
+!.env.example
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
