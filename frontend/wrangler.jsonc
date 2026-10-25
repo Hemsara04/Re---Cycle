@@ -3,7 +3,7 @@
   // so `npm run build` must run before `wrangler deploy` (set as the Build command in Cloudflare).
   "$schema": "./node_modules/wrangler/config-schema.json",
   // Must match the Worker's name in the Cloudflare dashboard (Workers & Pages → your project).
-  "name": "re-cycle",
+  "name": "re---cycle",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./out",
