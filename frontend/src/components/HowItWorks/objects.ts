@@ -394,14 +394,29 @@ function drawListing(live: boolean) {
   return c;
 }
 
-export function createPhone() {
+const PHONE_HEIGHT = 3.08; // world units; the screen UI and timeline poses are sized around this
+
+/**
+ * The phone in step 1. With `model` (the iPhone 17 Pro glTF) it is normalised to
+ * PHONE_HEIGHT and its front face found automatically; without it, a rounded-box stand-in.
+ * Either way our own screen UI (viewfinder → listing → live) is laid over the display.
+ */
+export function createPhone(model?: THREE.Object3D) {
   const group = new THREE.Group();
-  const body = new THREE.Mesh(
-    new RoundedBoxGeometry(1.5, 3.08, 0.15, 8, 0.2),
-    new THREE.MeshPhysicalMaterial({ color: HOW_COLORS.phone, metalness: 0.7, roughness: 0.28, clearcoat: 1, clearcoatRoughness: 0.08 }),
-  );
-  body.castShadow = true;
-  group.add(body);
+  let screenW = 1.36, screenH = 2.92, screenR = 0.15, screenZ = 0.0765;
+
+  if (model) {
+    const body = fitPhoneModel(model);
+    group.add(body.object);
+    ({ screenW, screenH, screenR, screenZ } = body);
+  } else {
+    const body = new THREE.Mesh(
+      new RoundedBoxGeometry(1.5, PHONE_HEIGHT, 0.15, 8, 0.2),
+      new THREE.MeshPhysicalMaterial({ color: HOW_COLORS.phone, metalness: 0.7, roughness: 0.28, clearcoat: 1, clearcoatRoughness: 0.08 }),
+    );
+    body.castShadow = true;
+    group.add(body);
+  }
 
   const textures = [drawCamera(), drawListing(false), drawListing(true)].map((c) => {
     const t = new THREE.CanvasTexture(c);
@@ -410,16 +425,26 @@ export function createPhone() {
     return t;
   });
   const screenMat = new THREE.MeshBasicMaterial({ map: textures[0], toneMapped: false, color: new THREE.Color(0.86, 0.86, 0.86) });
-  const screen = new THREE.Mesh(new RoundedPlane(1.36, 2.92, 0.15), screenMat);
-  screen.position.z = 0.0765;
+  const screen = new THREE.Mesh(new RoundedPlane(screenW, screenH, screenR), screenMat);
+  screen.position.z = screenZ;
   group.add(screen);
+
+  if (model) {
+    // Dynamic Island, drawn over our screen UI
+    const island = new THREE.Mesh(
+      new RoundedPlane(screenW * 0.29, screenW * 0.085, screenW * 0.0425),
+      new THREE.MeshBasicMaterial({ color: "#000000", toneMapped: false }),
+    );
+    island.position.set(0, screenH / 2 - screenW * 0.075, screenZ + 0.0015);
+    group.add(island);
+  }
 
   // white flash overlay for the "photo taken" moment
   const flash = new THREE.Mesh(
-    new RoundedPlane(1.36, 2.92, 0.15),
+    new RoundedPlane(screenW, screenH, screenR),
     new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0, toneMapped: false }),
   );
-  flash.position.z = 0.078;
+  flash.position.z = screenZ + 0.003;
   group.add(flash);
 
   return {
@@ -432,6 +457,78 @@ export function createPhone() {
       flash.material.opacity = v;
     },
     textures,
+  };
+}
+
+/**
+ * Centre and scale a phone model to PHONE_HEIGHT, upright, display facing +Z.
+ * Works whatever axes the file was authored in: the longest side is the height,
+ * the shortest the depth, and the front is the depth extreme whose vertices cover
+ * the most area (the back's extreme is only the camera plateau).
+ */
+function fitPhoneModel(model: THREE.Object3D) {
+  model.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(model, true);
+  const size = box.getSize(new THREE.Vector3());
+  const axes = (["x", "y", "z"] as const).slice().sort((a, b) => size[b] - size[a]);
+  const [hAxis, wAxis, dAxis] = axes;
+
+  // vertex footprint near each depth extreme
+  const v = new THREE.Vector3();
+  const near = [new THREE.Box2(), new THREE.Box2()]; // [min side, max side] in (w, h)
+  const eps = size[dAxis] * 0.06;
+  model.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const pos = mesh.geometry.attributes.position;
+    const step = Math.max(1, Math.floor(pos.count / 20_000)); // sampling is plenty on dense meshes
+    for (let i = 0; i < pos.count; i += step) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+      const p = new THREE.Vector2(v[wAxis], v[hAxis]);
+      if (v[dAxis] < box.min[dAxis] + eps) near[0].expandByPoint(p);
+      if (v[dAxis] > box.max[dAxis] - eps) near[1].expandByPoint(p);
+    }
+  });
+  const area = (b: THREE.Box2) => (b.isEmpty() ? 0 : (b.max.x - b.min.x) * (b.max.y - b.min.y));
+  const frontIsMax = area(near[1]) >= area(near[0]);
+
+  // basis that maps model axes → (x = width, y = height, z = towards the viewer)
+  const unit = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
+  const zDir = unit[dAxis].clone().multiplyScalar(frontIsMax ? 1 : -1);
+  const yDir = unit[hAxis].clone();
+  const xDir = new THREE.Vector3().crossVectors(yDir, zDir); // right-handed
+  const rot = new THREE.Matrix4().makeBasis(xDir, yDir, zDir).transpose(); // inverse of a rotation
+
+  // front face plane (depth of the display glass) in the model's own frame
+  const center = box.getCenter(new THREE.Vector3());
+  const frontDepth = (frontIsMax ? box.max[dAxis] : box.min[dAxis]) - center[dAxis];
+  const s = PHONE_HEIGHT / size[hAxis];
+
+  const pivot = new THREE.Group();
+  model.position.sub(center); // centre first (in the parent frame of the model root)
+  const inner = new THREE.Group();
+  inner.add(model);
+  inner.quaternion.setFromRotationMatrix(rot);
+  inner.scale.setScalar(s);
+  pivot.add(inner);
+  model.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = true;
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    mats.forEach((m) => {
+      if ("envMapIntensity" in m) (m as THREE.MeshStandardMaterial).envMapIntensity = 1.2;
+    });
+  });
+
+  const width = size[wAxis] * s;
+  return {
+    object: pivot,
+    // iPhone 17 Pro display is ~94% × 96.5% of the body, corner radius ~14% of its width
+    screenW: width * 0.935,
+    screenH: PHONE_HEIGHT * 0.962,
+    screenR: width * 0.14,
+    screenZ: Math.abs(frontDepth) * s + 0.004,
   };
 }
 

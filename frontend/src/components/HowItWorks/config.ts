@@ -67,6 +67,9 @@ export const SHOTS: Record<"desktop" | "mobile", Record<"step1" | "step2" | "ste
   },
 };
 
+/** iPhone 17 Pro glTF (see CREDITS.md). If it fails to load, a procedural stand-in is used. */
+export const PHONE_MODEL_URL = "/models/iphone_17_pro.glb";
+
 export const PHONE_POSE = { position: [1.1, 0, 1.2] as V3, rotationY: -0.38 };
 export const SUBJECT_POSE = { position: [-0.55, -0.9, -1.6] as V3 };
 export const MOBILE_PHONE_POSE = { position: [0.35, 0.9, 0.6] as V3, rotationY: -0.2 };

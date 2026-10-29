@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { createStage, disposeTree } from "@/components/three/stage";
 import { CAMERA, type Tier } from "@/components/WasteScene/config";
 import { mulberry32 } from "@/lib/noise";
@@ -8,6 +10,7 @@ import {
   MOBILE_PHONE_POSE,
   MOBILE_SUBJECT_POSE,
   NETWORK_ROUTES,
+  PHONE_MODEL_URL,
   PHONE_POSE,
   PIN_COUNTS,
   SELLER,
@@ -61,10 +64,20 @@ export async function createHowScene(opts: {
   const phonePose = mobile ? MOBILE_PHONE_POSE : PHONE_POSE;
   const subjectPose = mobile ? MOBILE_SUBJECT_POSE : SUBJECT_POSE;
 
-  const envPromise = stage.loadEnvironment((f) => onProgress?.(f * 0.85));
+  // environment and phone model download in parallel; progress is their average
+  const loaded = { env: 0, phone: 0 };
+  const report = () => onProgress?.(((loaded.env + loaded.phone) / 2) * 0.85);
+  const envPromise = stage.loadEnvironment((f) => {
+    loaded.env = f;
+    report();
+  });
+  const phoneModel = await loadPhoneModel((f) => {
+    loaded.phone = f;
+    report();
+  });
 
   // ── step 1: phone + subject ──
-  const phone = createPhone();
+  const phone = createPhone(phoneModel);
   scene.add(phone.group);
   const bottles = createBottleCluster(settings.transmission);
   scene.add(bottles);
@@ -243,4 +256,18 @@ export async function createHowScene(opts: {
     renderOnce: stage.renderOnce,
     dispose: stage.dispose,
   };
+}
+
+async function loadPhoneModel(onProgress: (f: number) => void) {
+  const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  try {
+    const gltf = await loader.loadAsync(PHONE_MODEL_URL, (e) => e.total && onProgress(e.loaded / e.total));
+    return gltf.scene;
+  } catch (err) {
+    console.warn("HowItWorks: iPhone model unavailable, using the built-in phone", err);
+    return undefined;
+  } finally {
+    onProgress(1);
+  }
 }

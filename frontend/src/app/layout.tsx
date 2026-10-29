@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono, Noto_Sans_Sinhala } from "next/font/google";
+import { PageLoader } from "@/components/page-loader";
 import { Providers } from "@/components/providers";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -33,9 +34,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${sinhala.variable} h-full antialiased`}
+      className={`is-loading ${geistSans.variable} ${geistMono.variable} ${display.variable} ${sinhala.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <noscript>
+          <style>{`html.is-loading{overflow:visible}.page-loader{display:none}`}</style>
+        </noscript>
+        <PageLoader />
         <Providers>
           <SiteHeader />
           <main className="flex-1">{children}</main>

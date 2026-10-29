@@ -184,3 +184,56 @@ html[data-immersive] .site-header:not(:focus-within) {
   opacity: 0;
   pointer-events: none;
 }
+
+/* ── First-load brand screen (components/page-loader.tsx) ──
+   The page stays locked under the loader until it lifts. If JS never runs,
+   the failsafe animations unlock the page and hide the loader after 15 s. */
+html.is-loading {
+  overflow: hidden;
+  animation: loader-unlock 0s 15s forwards;
+}
+@keyframes loader-unlock {
+  to { overflow: visible; }
+}
+.page-loader {
+  animation: loader-failsafe 0s 15s forwards;
+  transition: opacity 0.7s cubic-bezier(0.65, 0, 0.35, 1), visibility 0s linear 0.7s;
+}
+.page-loader.is-exiting {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.page-loader-inner {
+  transition: transform 0.7s cubic-bezier(0.65, 0, 0.35, 1), filter 0.7s;
+}
+.page-loader.is-exiting .page-loader-inner {
+  transform: scale(1.08);
+  filter: blur(6px);
+}
+@keyframes loader-failsafe {
+  to { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+.page-loader-mark {
+  animation: loader-breathe 2.4s ease-in-out infinite;
+}
+.page-loader-mark path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: loader-draw 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+.page-loader-mark path:nth-child(2) { animation-delay: 0.12s; }
+.page-loader-mark path:nth-child(3) { animation-delay: 0.24s; }
+.page-loader-mark path:nth-child(4) { animation-delay: 0.36s; }
+@keyframes loader-draw {
+  0% { stroke-dashoffset: 1; }
+  40%, 75% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -1; }
+}
+@keyframes loader-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-loader-mark path { stroke-dashoffset: 0; animation: none; }
+}

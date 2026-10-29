@@ -1,6 +1,5 @@
 "use client";
 
-import "lenis/dist/lenis.css";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
@@ -8,9 +7,10 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRightIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { useDeviceTier } from "@/hooks/useDeviceTier";
-import { useImmersiveNav, useLenis, useNearViewport } from "@/hooks/useScrollStory";
+import { useImmersiveNav, useNearViewport } from "@/hooks/useScrollStory";
+import { isLoaderClosed, useLoaderTask } from "@/lib/page-loader";
 import { cn } from "@/lib/utils";
-import { CAMERA, SCROLL_LENGTH_VH, SMOOTH_SCROLL } from "./config";
+import { CAMERA, SCROLL_LENGTH_VH } from "./config";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -43,12 +43,12 @@ export function WasteStory() {
   const showFallback = measured && (!device.webgl || failed);
   const animated = measured && !still && !showFallback;
 
-  useLenis(animated && SMOOTH_SCROLL);
-
-  // Page-wide smooth scroll lives here (once per page), the nav hides while pinned,
-  // and the 3D code + assets only load when the section is about to scroll in.
+  // The nav hides while pinned. On the first page load the scene builds behind the
+  // loading screen; after that (client-side navigation) it loads when about to scroll in.
   useImmersiveNav(section, animated);
-  const near = useNearViewport(section, measured && !showFallback);
+  const [preload] = useState(() => typeof window !== "undefined" && !isLoaderClosed());
+  const near = useNearViewport(section, measured && !showFallback) || (preload && measured && !showFallback);
+  const reportLoad = useLoaderTask(!(ready || failed || (measured && showFallback)));
 
   useEffect(() => {
     if (!near || !device.tier || !canvas.current || !section.current) return;
@@ -68,7 +68,11 @@ export function WasteStory() {
           tier: device.tier!,
           mobile: device.mobile,
           still,
-          onProgress: (f) => !cancelled && setProgress(f),
+          onProgress: (f) => {
+            if (cancelled) return;
+            setProgress(f);
+            reportLoad(f);
+          },
         });
         if (cancelled) {
           scene.dispose();
@@ -118,7 +122,7 @@ export function WasteStory() {
       cancelled = true;
       cleanup?.();
     };
-  }, [near, device.tier, device.mobile, still]);
+  }, [near, device.tier, device.mobile, still, reportLoad]);
 
   // Reduced motion / no WebGL: a normal, non-pinned section
   if (measured && (still || showFallback)) {

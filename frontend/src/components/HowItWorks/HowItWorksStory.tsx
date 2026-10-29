@@ -6,6 +6,7 @@ import { ArrowRightIcon, CameraIcon, MapPinnedIcon, MessageCircleIcon } from "lu
 import { buttonVariants } from "@/components/ui/button";
 import { useDeviceTier } from "@/hooks/useDeviceTier";
 import { useImmersiveNav, useNearViewport } from "@/hooks/useScrollStory";
+import { isLoaderClosed, useLoaderTask } from "@/lib/page-loader";
 import { cn } from "@/lib/utils";
 import { HOW_SCROLL_LENGTH_VH } from "./config";
 
@@ -47,7 +48,10 @@ export function HowItWorksStory() {
   const animated = measured && device.webgl && !device.reducedMotion && !failed;
 
   useImmersiveNav(section, animated);
-  const near = useNearViewport(section, animated);
+  // first page load: build behind the loading screen; later visits: when about to scroll in
+  const [preload] = useState(() => typeof window !== "undefined" && !isLoaderClosed());
+  const near = useNearViewport(section, animated) || (preload && animated);
+  const reportLoad = useLoaderTask(!(ready || failed || (measured && !animated)));
 
   useEffect(() => {
     if (!near || !device.tier || !canvas.current || !section.current) return;
@@ -66,7 +70,11 @@ export function HowItWorksStory() {
           canvas: canvas.current!,
           tier: device.tier!,
           mobile: device.mobile,
-          onProgress: (f) => !cancelled && setProgress(f),
+          onProgress: (f) => {
+            if (cancelled) return;
+            setProgress(f);
+            reportLoad(f);
+          },
         });
         if (cancelled) {
           scene.dispose();

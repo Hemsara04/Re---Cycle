@@ -7,14 +7,7 @@ export type Tier = "high" | "medium" | "low";
 
 // ─── Scroll & phases ─────────────────────────────────────────────────────────
 export const SCROLL_LENGTH_VH = 500; // total height of the pinned section
-export const SCRUB = 1; // seconds the animation takes to catch up with the scroll position
-
-/**
- * Lenis smooth scrolling. Off by default: Lenis moves page scrolling onto the JS main thread,
- * so any heavy WebGL frame stalls the scroll itself, and its easing stacks on top of SCRUB.
- * Native scroll stays on the compositor thread and SCRUB already smooths the animation.
- */
-export const SMOOTH_SCROLL = false;
+export const SCRUB = 0.6; // seconds the animation takes to catch up (Lenis already eases the scroll itself)
 
 export const PHASES = {
   introTextOut: [0.04, 0.1], // problem copy fades out

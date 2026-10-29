@@ -3,7 +3,6 @@
 import { type RefObject, useEffect, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import Lenis from "lenis";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -48,21 +47,4 @@ export function useNearViewport(ref: RefObject<HTMLElement | null>, enabled: boo
     return () => io.disconnect();
   }, [ref, enabled]);
   return near;
-}
-
-/** Optional Lenis smooth scrolling (see SMOOTH_SCROLL in config), synced to ScrollTrigger. */
-export function useLenis(enabled: boolean) {
-  useEffect(() => {
-    if (!enabled) return;
-    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
-    lenis.on("scroll", ScrollTrigger.update);
-    const tick = (time: number) => lenis.raf(time * 1000);
-    gsap.ticker.add(tick);
-    gsap.ticker.lagSmoothing(0);
-    return () => {
-      gsap.ticker.remove(tick);
-      gsap.ticker.lagSmoothing(500, 33);
-      lenis.destroy();
-    };
-  }, [enabled]);
 }

@@ -15,6 +15,15 @@ Downloaded at 1k resolution, then optimised with `gltf-transform optimize`: mesh
 
 Licence: https://polyhaven.com/license (CC0 1.0 Universal)
 
+## iPhone 17 Pro model ("How it works", step 1)
+
+`public/models/iphone_17_pro.glb` is loaded if present; otherwise a procedural phone stands in.
+Intended source: "iPhone 17 Pro" by Ranguel on Sketchfab, CC BY 4.0 (attribution required):
+https://sketchfab.com/3d-models/iphone-17-pro-4541aa8a28324b33a2baaf81d263aaec
+Optimise it the same way as the other models before committing (`npx @gltf-transform/cli optimize in.glb out.glb --compress meshopt --texture-compress webp --texture-size 1024`).
+The code finds its height, width and front face automatically and lays the app's own screen UI and Dynamic Island over the display.
+Unofficial, fan-made model; Apple and iPhone are trademarks of Apple Inc.
+
 ## HDRI: Poly Haven (CC0 1.0)
 
 | File | Source | Used for |
