@@ -48,6 +48,8 @@ export type HowState = {
   network: number; // 0..1 finale: more handovers across the island
 };
 
+const DESIGN_ASPECT = 1.55; // aspect ratio the desktop SHOTS were composed for
+
 export type HowSceneApi = Awaited<ReturnType<typeof createHowScene>>;
 
 export async function createHowScene(opts: {
@@ -169,12 +171,16 @@ export async function createHowScene(opts: {
   stage.setFrame(({ time, pointer }) => {
     // camera (parallax shrinks once we're looking down at the map)
     const par = 1 - state.mapIn * 0.6;
-    camera.position.set(
-      state.camX + pointer.x * CAMERA.parallax.x * par,
-      state.camY - pointer.y * CAMERA.parallax.y * par,
-      state.camZ,
-    );
     look.set(state.lookX, state.lookY, state.lookZ);
+    // desktop shots are framed for ~16:10; on narrower windows (tablets, split screens)
+    // pull the camera back along its line of sight so the side-placed subject stays in frame
+    const fit = mobile ? 1 : Math.max(1, Math.pow(DESIGN_ASPECT / camera.aspect, 0.65));
+    camera.position
+      .set(state.camX, state.camY, state.camZ)
+      .sub(look)
+      .multiplyScalar(fit)
+      .add(look)
+      .add(tmp.set(pointer.x * CAMERA.parallax.x * par, -pointer.y * CAMERA.parallax.y * par, 0));
     camera.lookAt(look);
 
     // phone: rises in, idles, then flies to the seller's spot and shrinks into the pin

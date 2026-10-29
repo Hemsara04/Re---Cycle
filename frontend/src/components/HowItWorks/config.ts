@@ -69,6 +69,8 @@ export const SHOTS: Record<"desktop" | "mobile", Record<"step1" | "step2" | "ste
 
 /** iPhone 17 Pro glTF (see CREDITS.md). If it fails to load, a procedural stand-in is used. */
 export const PHONE_MODEL_URL = "/models/iphone_17_pro.glb";
+/** The model ships in Cosmic Orange, which blooms into a glowing outline under the rim light; Deep Blue reads cleanly. */
+export const PHONE_FINISH = "#27334a";
 
 export const PHONE_POSE = { position: [1.1, 0, 1.2] as V3, rotationY: -0.38 };
 export const SUBJECT_POSE = { position: [-0.55, -0.9, -1.6] as V3 };

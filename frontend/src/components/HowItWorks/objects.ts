@@ -5,7 +5,7 @@ import { glassBottle } from "@/components/WastePieces/geometries";
 import { PROVINCES } from "@/lib/locations";
 import { MATERIALS } from "@/lib/materials";
 import { mulberry32 } from "@/lib/noise";
-import { HOW_COLORS, MAP } from "./config";
+import { HOW_COLORS, MAP, PHONE_FINISH } from "./config";
 
 // ─── Geography ───────────────────────────────────────────────────────────────
 
@@ -504,6 +504,7 @@ function fitPhoneModel(model: THREE.Object3D) {
   const frontDepth = (frontIsMax ? box.max[dAxis] : box.min[dAxis]) - center[dAxis];
   const s = PHONE_HEIGHT / size[hAxis];
 
+  const hsl = { h: 0, s: 0, l: 0 };
   const pivot = new THREE.Group();
   model.position.sub(center); // centre first (in the parent frame of the model root)
   const inner = new THREE.Group();
@@ -517,7 +518,16 @@ function fitPhoneModel(model: THREE.Object3D) {
     mesh.castShadow = true;
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     mats.forEach((m) => {
-      if ("envMapIntensity" in m) (m as THREE.MeshStandardMaterial).envMapIntensity = 1.2;
+      const std = m as THREE.MeshStandardMaterial;
+      if (!std.isMeshStandardMaterial) return;
+      std.envMapIntensity = 1.2;
+      // repaint the coloured finish (frame, back glass, buttons); leave glass, flash and black parts alone
+      std.color.getHSL(hsl);
+      if (!std.transparent && hsl.s > 0.5 && hsl.l > 0.15) {
+        const metal = std.metalness > 0.5;
+        std.color.set(PHONE_FINISH).offsetHSL(0, 0, metal ? 0 : -0.06);
+        if (metal) std.roughness = Math.max(std.roughness, 0.42); // brushed, so highlights spread instead of flaring
+      }
     });
   });
 

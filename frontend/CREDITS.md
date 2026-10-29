@@ -15,14 +15,17 @@ Downloaded at 1k resolution, then optimised with `gltf-transform optimize`: mesh
 
 Licence: https://polyhaven.com/license (CC0 1.0 Universal)
 
-## iPhone 17 Pro model ("How it works", step 1)
+## iPhone model ("How it works", step 1): Sketchfab (CC BY 4.0)
 
-`public/models/iphone_17_pro.glb` is loaded if present; otherwise a procedural phone stands in.
-Intended source: "iPhone 17 Pro" by Ranguel on Sketchfab, CC BY 4.0 (attribution required):
-https://sketchfab.com/3d-models/iphone-17-pro-4541aa8a28324b33a2baaf81d263aaec
-Optimise it the same way as the other models before committing (`npx @gltf-transform/cli optimize in.glb out.glb --compress meshopt --texture-compress webp --texture-size 1024`).
-The code finds its height, width and front face automatically and lays the app's own screen UI and Dynamic Island over the display.
-Unofficial, fan-made model; Apple and iPhone are trademarks of Apple Inc.
+| File | Source | Author | Used as |
+|---|---|---|---|
+| `iphone_17_pro.glb` | https://sketchfab.com/3d-models/phone-17-pro-max-66809964eff043a39d553c3795995008 | Ranguel (https://sketchfab.com/Roberto.De.Jesus.Gonzalez) | the phone that takes the photo and becomes the seller pin |
+
+Licence: https://creativecommons.org/licenses/by/4.0/ (attribution required; it is kept here and in the file's `asset.extras`).
+The author's "Phone 17 Pro Max" model; the 17 Pro shares its design and proportions, and the scene scales it to size.
+Optimised with `gltf-transform optimize --compress meshopt --simplify false --palette false` (1.05 MB → 156 KB, full geometry kept).
+At load time the Cosmic Orange finish is repainted Deep Blue (`PHONE_FINISH` in `HowItWorks/config.ts`), and the app's own screen UI and Dynamic Island are laid over the display.
+If the file fails to load, a procedural phone stands in. Unofficial, fan-made model; Apple and iPhone are trademarks of Apple Inc.
 
 ## HDRI: Poly Haven (CC0 1.0)
 
